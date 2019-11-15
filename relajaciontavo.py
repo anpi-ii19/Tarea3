@@ -1,25 +1,8 @@
 import numpy as np
 import sympy as sp
+from numpy import linalg as LA
 
 
-def verificar_simetria(matriz):
-    """
-    Metodo que verifica si una matriz es simetrica
-    :param matriz: Numpy Matrix que debe ser verificada
-    :return: True si la matriz es simetrica, False en caso contrario
-    """
-    # Se verifica que las entradas cumplen que Ai,j = Aj,i (simetria)
-    n, m = matriz.shape  # Dimensiones de la matriz
-    for i in range(0, n):
-        for j in range(0, m):
-            elemento1 = matriz[i, j]
-            elemento2 = matriz[j, i]
-
-            # Si elemento1 es diferente de elemento2 la matriz no es simetrica
-            if elemento1 != elemento2:
-                return False
-
-    return True
 
 
 def verificar_positiva_definida(matriz):
@@ -67,10 +50,11 @@ def calcular_omega_optimo(matriz_l, matriz_d, matriz_u):
     :return: Float, omega optimo calculado
     """
     # Se calcula D**-1 * -(L + U)
-    matriz = np.linalg.inv(matriz_d) * (-matriz_l - matriz_u)
-
+    matriz = np.linalg.inv(matriz_d) * (-matriz_l + matriz_u)
     # Se calculan los autovalores de la matriz
-    auto_val = calcular_autovalores(matriz)
+#     auto_val = calcular_autovalores(matriz)
+    
+    auto_val, v = LA.eig(matriz)
 
     # Se obtiene el maximo autovalor en valor absoluto
     max_autoval = abs(max(auto_val, key=abs))
@@ -135,7 +119,7 @@ def calcular_triangular_inferior(matriz):
     return t_inferior
 
 
-def relajacion(matriz_a, matriz_b, tol):
+def relajacion_tavo(matriz_a, matriz_b, tol):
     """
     Funcion que implementa el metodo de relajacion para encontrar la solucion de un sistema
     de la forma A x = b
@@ -164,18 +148,24 @@ def relajacion(matriz_a, matriz_b, tol):
 #         return "La matriz_a debe ser simetrica"
 
     # Se verifica que la matriz_a sea positiva definida
+#     print("-----------")
     positiva_definida = verificar_positiva_definida(matriz_a)
     if not positiva_definida:
         return "La matriz_a debe ser positiva definida"
 
     # Se calcula la descomposicion A = L + D + U
-    matriz_l = calcular_triangular_inferior(matriz_a)
-    matriz_d = calcular_matriz_diagonal(matriz_a)
-    matriz_u = calcular_triangular_superior(matriz_a)
+#     print(matriz_a)
+#     matriz_l = calcular_triangular_inferior(matriz_a)
+    matriz_l=np.asmatrix(np.diag(np.diag(matriz_a,-1),-1))
+    
+#     matriz_d = calcular_matriz_diagonal(matriz_a)
+    matriz_d=np.asmatrix(np.diag(np.diag(matriz_a)))
+
+#     matriz_u = calcular_triangular_superior(matriz_a)
+    matriz_u=np.asmatrix(np.diag(np.diag(matriz_a,1),1))
 
     omega = calcular_omega_optimo(matriz_l, matriz_d, matriz_u)
 #     print("omega optimo:",omega)
-    
     try:
         # Se calcula el inverso de la matriz (D + w * L)
         matriz_dwl_inv = np.linalg.inv(matriz_d + omega * matriz_l)
@@ -185,10 +175,9 @@ def relajacion(matriz_a, matriz_b, tol):
     # Se calculan las matrices Br y Cr
     matriz_br = matriz_dwl_inv * ((1 - omega) * matriz_d - omega * matriz_u)
     matriz_cr = omega * matriz_dwl_inv * matriz_b
-
     # Matriz x anterior que almacena el resultado de la iteracion anterior
     matriz_x_ant = np.matrix(np.zeros((n, 1)))
-
+    i=0;
     while 1:
         # Calculo de la matriz x de la iteracion actual
         matriz_x = matriz_br * matriz_x_ant + matriz_cr
@@ -201,7 +190,7 @@ def relajacion(matriz_a, matriz_b, tol):
         # Se verifica la condicion de parada
         if error < tol:
             break
-
+        i+=1
         matriz_x_ant = matriz_x.copy()
 
     return matriz_x
@@ -221,3 +210,20 @@ def relajacion(matriz_a, matriz_b, tol):
 # b = [[-1], [7], [-7]]
 # x = relajacion(A, b, 10 ** -10)
 # print(A * x)
+
+
+# n= 200
+# A=np.diag(np.ones(n),0)*6+np.diag(np.ones(n-1),-1)*2+np.diag(np.ones(n-1)*2,1)
+# b=np.ones(n)*15
+# b[0]=12
+# b[-1]=12
+
+
+# print(A)
+# print(b)
+# print(relajacion_tavo(A, np.transpose([b]), 10 ** -10))
+
+
+
+
+
